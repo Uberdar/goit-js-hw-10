@@ -25,7 +25,9 @@ span {
 .country-header {
   display: flex;
   font-size: 30px;
+  height: 20;
   font-weight: 700;
+  align-items: center;
 }
 .country-header span{
   margin-left: 10px;

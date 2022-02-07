@@ -2,6 +2,8 @@ import Notiflix from 'notiflix';
 import {mypromise} from "./js/fetchCountries";
 import './css/styles.css';
 var debounce = require('lodash.debounce');
+const MSG_MANY = 'Too many matches found. Please enter a more specific name.';
+const MSG_FAIL = 'Oops, there is no country with that name';
 const DEBOUNCE_DELAY = 300;
 const inputBox = document.querySelector("#search-box");
 inputBox.addEventListener('input', debounce(start, DEBOUNCE_DELAY));
@@ -10,70 +12,69 @@ const refSearchWindow = document.querySelector('.country-list');
 
 function start(data){
     let searchData = data.target.value.trim();
-    if (searchData === ''){
-        clearWindowIfSearchEmpty();
+    if (!searchData){
+        updateMarkup();
         return
     }
     mypromise(searchData).then(res => 
         {
             const length = res.length;
             if (length === 1){
-                generateOneMarkup(res);
+               const markVar = generateOneMarkup(res);
+               updateMarkup(markVar);
             return
             }
             if (length > 1 && length <=10){
-                generateManyMarkups(res)
+                const markVar = generateManyMarkups(res)
+                updateMarkup(markVar);
                 return
             }
-            clearWindowIfSearchEmpty();
-            Notiflix.Notify.info('Too many matches found. Please enter a more specific name.');
+            updateMarkup();
+            showMsgUser('info',MSG_MANY);
         }
         ).catch(err => 
             {
-                Notiflix.Notify.failure('Oops, there is no country with that name')
-                clearWindowIfSearchEmpty();
+                showMsgUser('failure',MSG_FAIL);
+                updateMarkup();
             });
 };
 
 
-function generateManyMarkups(res){
-    const markupForOne = res.map(elem => {
-
+function generateManyMarkups(res = []){
+    return res.map(({flags, name:{official}}) => {
     return `<li class="country__item">
     <div class="country-header">
     <img class="flag-pic"
-     src="${elem.flags[0]}"
+     src="${flags[0]}"
      alt="flag">
-    <span class="country-name">${elem.name.official}</span>
+    <span class="country-name">${official}</span>
     </div>
     </li>`;
 }).join("");
-
-refSearchWindow.innerHTML = markupForOne;
 }
 
-function generateOneMarkup(res){
-    const markupForAll = res.map(elem => {
-        let usedLangs = '';
-        const pickLangs = Object.values(elem.languages);
-        pickLangs.forEach(value => {
-            usedLangs += value + " ";
-          })
+function generateOneMarkup(res = []){
+    return res.map(({flags, name:{official}, capital,population,languages}) => {
+        const pickLangs = Object.values(languages);
         return `<li class="country__item">
         <div class="country-header">
         <img class="flag-pic"
-         src="${elem.flags[0]}"
+         src="${flags[0]}"
          alt="flag">
-        <span class="country-name">${elem.name.official}</span>
+        <span class="country-name">${official}</span>
         </div>
-        <span class="capital-name">Capital: ${elem.capital}</span>
-        <span class="population-count">Population: ${elem.population}</span>
-        <span class="languages">Languages: ${usedLangs}</span>
+        <span class="capital-name">Capital: ${capital}</span>
+        <span class="population-count">Population: ${population}</span>
+        <span class="languages">Languages: ${pickLangs.join(', ')}</span>
         </li>`;
     }).join("");
-    refSearchWindow.innerHTML = markupForAll;
+
 }
 
-function clearWindowIfSearchEmpty(){
-    refSearchWindow.innerHTML = "";
+function updateMarkup(markForAll = ''){
+    refSearchWindow.innerHTML = markForAll;
+}
+
+function showMsgUser(method = 'info',msg = ''){
+    Notiflix.Notify[method](msg);
 }
